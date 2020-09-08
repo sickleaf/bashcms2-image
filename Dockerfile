@@ -3,7 +3,33 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -qq
-RUN apt-get install -y -qq git apache2 rsync sudo pandoc gawk nkf vim
+RUN apt-get install -y -qq git apache2 curl rsync sudo pandoc gawk nkf vim make
+
+## General
+#FROM base AS general-builder
+#RUN target=/var/lib/apt/lists,source=/var/lib/apt/lists
+
+WORKDIR /downloads
+
+# Open-usp-Tukubai
+RUN git clone --depth 1 https://github.com/usp-engineers-community/Open-usp-Tukubai.git
+# teip
+RUN curl -sfSL --retry 5 https://git.io/teip-1.2.1.x86_64.deb -o teip.deb
+# Python
+RUN apt-get install -y -qq python3-dev python3-pip python3-setuptools
+RUN target=/root/.cache/pip \
+    pip3 install --progress-bar=off --no-use-pep517 asciinema faker matplotlib numpy pillow scipy sympy xonsh yq
+
+
+# Open-usp-Tukubai
+RUN target=/downloads,source=/downloads cd /downloads/Open-usp-Tukubai && make install
+# teip
+RUN target=/downloads,source=/downloads dpkg -i /downloads/teip.deb
+# Python
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+
+WORKDIR /
 
 RUN a2enmod cgid
 RUN rm /etc/apache2/sites-enabled/000-default.conf
